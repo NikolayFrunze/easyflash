@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../fonts.css">
+<style>
+  html, body { margin: 0; width: 1024px; height: 1024px; }
+  body {
+    background: radial-gradient(circle at 30% 20%, #f06a52, #e8553d 55%, #cf4129);
+    display: grid; place-items: center; overflow: hidden; position: relative;
+  }
+  /* a second card peeking out behind, echoing the flashcard idea */
+  .back, .front { position: absolute; width: 520px; height: 640px; border-radius: 80px; }
+  .back { background: rgba(255,255,255,.35); transform: rotate(10deg) translate(60px, 10px); }
+  .front {
+    background: #fffaf2; transform: rotate(-6deg); box-shadow: 0 30px 60px rgba(90,20,5,.35);
+    display: grid; place-items: center;
+    font: 700 460px/1 "Fraunces", Georgia, serif; color: #e8553d; padding-bottom: 20px; box-sizing: border-box;
+  }
+</style>
+<div class="back"></div>
+<div class="front">E</div>

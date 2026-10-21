@@ -1,0 +1,20 @@
+{
+  "name": "easyflash",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Spanish flashcards with a Bulgarian interface",
+  "scripts": {
+    "build": "rm -rf www && mkdir www && cp index.html styles.css fonts.css app.js apple-touch-icon.png www/ && cp -R fonts www/fonts",
+    "sync": "npm run build && cap sync ios",
+    "open": "npm run sync && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/share": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}

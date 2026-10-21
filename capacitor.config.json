@@ -1,0 +1,9 @@
+{
+  "appId": "com.niki.asiflash",
+  "appName": "EasyFlash",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#faf6ef"
+  }
+}

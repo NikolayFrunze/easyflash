@@ -1,0 +1,6 @@
+node_modules/
+www/
+data/
+*.bak
+*.tmp
+.DS_Store
