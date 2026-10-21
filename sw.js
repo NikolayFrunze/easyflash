@@ -1,5 +1,5 @@
 // Network first, so a new deploy shows up on the next load; the cache is only the offline fallback.
-const CACHE = 'easyflash-v3';
+const CACHE = 'easyflash-v4';
 const SHELL = [
   './', 'index.html', 'styles.css', 'fonts.css', 'app.js', 'manifest.webmanifest',
   'apple-touch-icon.png', 'icon/icon-192.png', 'icon/icon-512.png',
@@ -25,7 +25,7 @@ self.addEventListener('fetch', (e) => {
   // never cache the local auto-save API (server.py) or anything from another site
   if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.includes('/api/')) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' }) // GitHub Pages lets browsers reuse files for 10 minutes; revalidate instead
       .then((res) => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
         return res;
