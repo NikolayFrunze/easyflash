@@ -1,5 +1,5 @@
 // Network first, so a new deploy shows up on the next load; the cache is only the offline fallback.
-const CACHE = 'easyflash-v4';
+const CACHE = 'easyflash-v5';
 const SHELL = [
   './', 'index.html', 'styles.css', 'fonts.css', 'app.js', 'manifest.webmanifest',
   'apple-touch-icon.png', 'icon/icon-192.png', 'icon/icon-512.png',

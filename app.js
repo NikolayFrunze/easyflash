@@ -698,6 +698,7 @@ let syncAgain = false;
 let mergingFromSync = false; // a save caused by pulling shouldn't trigger another sync round
 let lastSync = 0;
 let syncError = '';
+let syncPending = false; // a change is waiting for its debounced sync
 
 function loadSync() {
   try {
@@ -761,6 +762,7 @@ async function syncNow(retry = true) {
   if (!sync) return false;
   if (syncBusy) { syncAgain = true; return false; }
   clearTimeout(syncTimer);
+  syncPending = false;
   syncBusy = true;
   syncError = '';
   renderSync();
@@ -804,6 +806,7 @@ function scheduleSync() {
   if (!sync || mergingFromSync) return;
   if (syncBusy) { syncAgain = true; return; }
   clearTimeout(syncTimer);
+  syncPending = true;
   syncTimer = setTimeout(syncNow, 1500); // batch bursts of changes
 }
 
@@ -839,11 +842,20 @@ $('sync-off').addEventListener('click', () => {
   renderSync();
   toast('Синхронизирането е изключено. Данните остават в gist-а.');
 });
-// Pick up changes made on the other device when you come back to this one
+// Pick up changes made on the other device when you come back to this one,
+// and send a pending change right away when you leave (before the 1.5 s timer would have fired)
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && sync && Date.now() - lastSync > 15000) syncNow();
+  if (!sync) return;
+  if (document.visibilityState === 'hidden' && syncPending) syncNow();
+  if (document.visibilityState === 'visible' && Date.now() - lastSync > 15000) syncNow();
 });
+window.addEventListener('focus', () => { if (sync && Date.now() - lastSync > 15000) syncNow(); });
 window.addEventListener('online', () => { if (sync) syncNow(); });
+// A tab that simply stays open gets no visibility events, so also check about once a minute
+function pollSync() {
+  if (sync && document.visibilityState === 'visible' && Date.now() - lastSync > 55000) syncNow();
+}
+setInterval(pollSync, 30000);
 
 // ---------- Stats ----------
 function renderStats() {
