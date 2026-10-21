@@ -5,7 +5,7 @@ Spanish flashcards with a Bulgarian interface. Plain HTML, CSS and JavaScript: n
 - Show Bulgarian or Spanish first (or mixed), and flip the card or type the answer
 - Add your own words; spaced-repetition scheduling
 - Works offline and can be installed on a phone (add to home screen)
-- Backup/restore as a CSV file
+- Sync between devices through a secret GitHub gist, and backup/restore as a CSV file
 
 ## Publish on GitHub Pages
 
@@ -22,12 +22,22 @@ Every push to `main` redeploys. Open the site once online and it keeps working o
 
 ## Where your data lives
 
-Words and progress are stored **in the browser on each device** (localStorage). The site has no server, so a phone and a laptop do **not** share data automatically. To move or back up data:
+Words and progress are stored **in the browser on each device** (localStorage). To keep a phone and a laptop in step, turn on **sync**:
 
-- **⬇️ Свали .csv** on the *Думи* page saves everything (words, progress, streak, settings).
-- **⬆️ Зареди от файл** on another device merges that file in. The most recently changed copy of each word wins, and deleted words stay deleted.
+1. Open the *Думи* page and use the **Синхронизация между устройства** section.
+2. Create a GitHub token with only the `gist` right (the link in the app pre-fills it) and paste it. Do the same on every device.
+3. The app keeps a **secret gist** named `easyflash.csv` in your GitHub account. Each device merges with it when you open the app, when you come back to it, and a moment after every change.
 
-Safari can clear the data of sites you haven't visited for about a week unless the app is added to the Home Screen, so keep a CSV backup.
+The token is stored only in that browser and never goes into the CSV or the repository. Anyone who has the gist URL can read it, so don't share it. Use *Изключи* to disconnect a device (the gist stays). Other pages under the same `github.io` address can read what this site stores, so only publish projects you trust there.
+
+Merging is per word: the most recently changed copy wins, deletions stay deleted, and review counts per day keep the larger number. Both devices need roughly correct clocks.
+
+Without sync you can still move data by hand:
+
+- **⬇️ Свали .csv** saves everything (words, progress, streak, settings).
+- **⬆️ Зареди от файл** merges such a file into another device.
+
+Safari can clear the data of sites you haven't visited for about a week unless the app is added to the Home Screen, so keep sync on or keep a CSV backup.
 
 ## Run locally with automatic saving to a CSV
 

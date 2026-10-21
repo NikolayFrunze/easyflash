@@ -153,6 +153,29 @@
           <button class="btn small ghost" type="button" id="unlink-btn" hidden>Прекъсни</button>
         </div>
 
+        <section class="panel sync" id="sync-panel">
+          <h2>☁️ Синхронизация между устройства</h2>
+          <div id="sync-setup">
+            <p>Свържи GitHub и думите ти ще се обновяват сами на телефона и на лаптопа. Данните се пазат в таен gist в твоя акаунт.</p>
+            <ol>
+              <li>Отвори <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=EasyFlash" target="_blank" rel="noopener">страницата за нов токен</a> и натисни „Generate token“. Нужно е само правото „gist“.</li>
+              <li>Копирай токена и го постави тук. Направи същото на всяко устройство.</li>
+            </ol>
+            <form class="sync-form" id="sync-form" autocomplete="off">
+              <input id="sync-token" type="password" autocomplete="off" spellcheck="false" placeholder="Постави токена тук" aria-label="GitHub токен" required>
+              <button class="btn primary" type="submit">Свържи</button>
+            </form>
+          </div>
+          <div id="sync-connected" hidden>
+            <p id="sync-text"></p>
+            <div class="sync-actions">
+              <button class="btn small" type="button" id="sync-now">Синхронизирай сега</button>
+              <button class="btn small ghost" type="button" id="sync-off">Изключи</button>
+            </div>
+          </div>
+          <p class="sync-error" id="sync-error" role="alert" hidden></p>
+        </section>
+
         <form class="panel add-form" id="add-form" autocomplete="off">
           <label>Испански
             <input id="f-es" required maxlength="80" placeholder="напр. la manzana" lang="es">

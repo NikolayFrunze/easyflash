@@ -57,6 +57,7 @@ const wordKey = (es, bg) => `${es.toLowerCase()}\t${bg.toLowerCase()}`;
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {}
   scheduleFileWrite();
+  scheduleSync();
 }
 const state = load();
 
@@ -683,6 +684,167 @@ $('import-file').addEventListener('change', (e) => {
   e.target.value = ''; // allow re-importing the same file
 });
 
+// ---------- Sync between devices (secret GitHub gist) ----------
+// Each device keeps its own copy and merges with the gist using the same rules as the CSV file:
+// the most recently changed copy of each word wins, and deletions stick.
+// The token lives under its own key so it never ends up in the CSV.
+const SYNC_KEY = 'easyflash.sync';
+const SYNC_FILE = 'easyflash.csv';
+const GITHUB = 'https://api.github.com';
+let sync = loadSync(); // { token, gistId } or null
+let syncTimer;
+let syncBusy = false;
+let syncAgain = false;
+let mergingFromSync = false; // a save caused by pulling shouldn't trigger another sync round
+let lastSync = 0;
+let syncError = '';
+
+function loadSync() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SYNC_KEY));
+    return s && s.token ? s : null;
+  } catch { return null; }
+}
+function storeSync() {
+  try {
+    if (sync) localStorage.setItem(SYNC_KEY, JSON.stringify(sync));
+    else localStorage.removeItem(SYNC_KEY);
+  } catch {}
+}
+
+async function gh(path, opts = {}) {
+  const r = await fetch(GITHUB + path, {
+    ...opts,
+    headers: {
+      Authorization: `Bearer ${sync.token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+  });
+  if (!r.ok) throw Object.assign(new Error(`HTTP ${r.status}`), { status: r.status });
+  return r.json();
+}
+
+// Row order and per-device settings differ between devices; ignore both when deciding whether to push
+const canon = (t) => t.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l && !l.startsWith('setting,')).sort().join('\n');
+
+async function ensureGist() {
+  for (let page = 1; page <= 3; page++) {
+    const list = await gh(`/gists?per_page=100&page=${page}`);
+    const hit = list.find((g) => g.files && g.files[SYNC_FILE]);
+    if (hit) { sync.gistId = hit.id; return; }
+    if (list.length < 100) break;
+  }
+  const g = await gh('/gists', {
+    method: 'POST',
+    body: JSON.stringify({ description: 'EasyFlash sync', public: false, files: { [SYNC_FILE]: { content: serialize() } } }),
+  });
+  sync.gistId = g.id;
+}
+
+async function readGist() {
+  const g = await gh(`/gists/${sync.gistId}`);
+  const f = g.files && g.files[SYNC_FILE];
+  if (!f) return '';
+  return f.truncated ? (await fetch(f.raw_url)).text() : f.content || '';
+}
+
+function syncMessage(err) {
+  if (err.status === 401) return 'Токенът е невалиден или е изтекъл. Създай нов и го постави отново.';
+  if (err.status === 403) return 'GitHub отказа достъпа. Провери дали токенът има право „gist“ или опитай след малко.';
+  if (err instanceof TypeError) return 'Няма връзка с интернет. Ще опитам пак по-късно.';
+  return `Грешка при синхронизиране (${err.status || err.message}).`;
+}
+
+async function syncNow(retry = true) {
+  if (!sync) return false;
+  if (syncBusy) { syncAgain = true; return false; }
+  clearTimeout(syncTimer);
+  syncBusy = true;
+  syncError = '';
+  renderSync();
+  let ok = false;
+  try {
+    if (!sync.gistId) await ensureGist();
+    const remote = await readGist();
+    const before = serialize();
+    mergeText(remote);
+    const merged = serialize();
+    if (merged !== before) {
+      mergingFromSync = true;
+      save();
+      mergingFromSync = false;
+      renderAll();
+    }
+    if (canon(merged) !== canon(remote)) {
+      await gh(`/gists/${sync.gistId}`, { method: 'PATCH', body: JSON.stringify({ files: { [SYNC_FILE]: { content: merged } } }) });
+    }
+    lastSync = Date.now();
+    ok = true;
+  } catch (err) {
+    mergingFromSync = false;
+    if (err.status === 404 && retry && sync.gistId) { // the gist was deleted: look for or create a new one
+      sync.gistId = '';
+      syncBusy = false;
+      return syncNow(false);
+    }
+    syncError = syncMessage(err);
+    if (err.status === 401) { sync = null; storeSync(); } // a rejected token is useless; ask for a new one
+  } finally {
+    syncBusy = false;
+  }
+  if (ok) storeSync(); // remembers the gist id
+  renderSync();
+  if (syncAgain) { syncAgain = false; scheduleSync(); }
+  return ok;
+}
+
+function scheduleSync() {
+  if (!sync || mergingFromSync) return;
+  if (syncBusy) { syncAgain = true; return; }
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, 1500); // batch bursts of changes
+}
+
+function renderSync() {
+  $('sync-setup').hidden = !!sync;
+  $('sync-connected').hidden = !sync;
+  const err = $('sync-error');
+  err.hidden = !syncError;
+  err.textContent = syncError;
+  if (!sync) return;
+  const time = lastSync ? new Date(lastSync).toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' }) : '';
+  $('sync-text').textContent = syncBusy
+    ? 'Синхронизиране…'
+    : `✓ Свързано с GitHub.${time ? ` Последна синхронизация: ${time}` : ''}`;
+}
+
+$('sync-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const token = $('sync-token').value.trim();
+  if (!token) return;
+  sync = { token, gistId: '' };
+  const ok = await syncNow();
+  $('sync-token').value = '';
+  if (ok) toast('Синхронизирането е включено');
+  else if (sync) { sync = null; storeSync(); renderSync(); } // keep only a token that worked
+});
+$('sync-now').addEventListener('click', () => syncNow());
+$('sync-off').addEventListener('click', () => {
+  sync = null;
+  syncError = '';
+  clearTimeout(syncTimer);
+  storeSync();
+  renderSync();
+  toast('Синхронизирането е изключено. Данните остават в gist-а.');
+});
+// Pick up changes made on the other device when you come back to this one
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && sync && Date.now() - lastSync > 15000) syncNow();
+});
+window.addEventListener('online', () => { if (sync) syncNow(); });
+
 // ---------- Stats ----------
 function renderStats() {
   const chart = $('chart');
@@ -750,6 +912,8 @@ document.addEventListener('keydown', (e) => {
 
 renderAll();
 initFile();
+renderSync();
+if (sync) syncNow();
 
 // Offline support and "add to home screen" (needs https, which GitHub Pages provides)
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
