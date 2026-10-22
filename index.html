@@ -177,6 +177,29 @@
         </section>
 
         <form class="panel add-form" id="add-form" autocomplete="off">
+          <div class="wide hw-row">
+            <button class="btn small ghost" type="button" id="hw-btn" aria-expanded="false" aria-controls="hw-panel">📷 От снимка</button>
+            <div class="hw-panel" id="hw-panel" hidden>
+              <div class="hw-photo" id="hw-photo">
+                <input type="file" id="hw-file" accept="image/*" capture="environment" aria-label="Снимка на ръкопис">
+                <img class="hw-preview" id="hw-preview" alt="Избрана снимка" hidden>
+              </div>
+              <div class="hw-controls">
+                <label>Запиши в
+                  <select id="hw-target" aria-label="В кое поле да се запише текстът">
+                    <option value="f-es">Испански</option>
+                    <option value="f-bg">Български</option>
+                    <option value="f-ex">Пример</option>
+                  </select>
+                </label>
+                <button class="btn small hw-go" type="button" id="hw-go">Разпознай</button>
+              </div>
+              <div class="hw-progress" id="hw-progress" hidden>
+                <progress id="hw-bar" max="1" value="0"></progress>
+                <span id="hw-status" role="status" aria-live="polite"></span>
+              </div>
+            </div>
+          </div>
           <label>Испански
             <input id="f-es" required maxlength="80" placeholder="напр. la manzana" lang="es">
           </label>
@@ -212,5 +235,6 @@
   </div>
   <div class="toast" id="toast" role="status"></div>
   <script src="app.js"></script>
+  <script src="hw.js"></script>
 </body>
 </html>
